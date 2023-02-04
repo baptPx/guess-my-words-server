@@ -1,12 +1,15 @@
 import supertest from 'supertest';
-import {app} from '../../src/App'
 import {describe, expect, test} from '@jest/globals';
-
+let app = require('../../src/App')
+console.log('dirname', __dirname)
 describe('MapRessources tests', () => {
     test('upload file', () => {
         return supertest(app)
-            .get('/api/maps')
-            // .attach('myfile', 'file/path/name.txt');
+            .post('/api/maps')
+            .field('title', 'title')
+            .field('description', 'description')
+            .attach('map', __dirname + '/../files/mapjv.jpg')
+            .expect(201)
 
     })
 })

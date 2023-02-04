@@ -1,8 +1,9 @@
-import {Column, DataType, Model, Table} from "sequelize-typescript";
+import {Column, DataType, Model, Table, HasMany} from "sequelize-typescript";
+import { MapPoint } from "./MapPoint";
 
 
 @Table({ tableName: 'map'})
-export class Map extends Model<Map> {
+export class MapToGuess extends Model<MapToGuess> {
 
     @Column({field: 'id', type: DataType.INTEGER, allowNull: true, primaryKey: true, autoIncrement: true})
     id: number;
@@ -14,22 +15,15 @@ export class Map extends Model<Map> {
     })
     userId: number;
 
-    @Column({field: 'x', type: DataType.INTEGER})
-    x: number;
-
-    @Column({field: 'y', type: DataType.INTEGER})
-    y: number;
-
-    @Column({field: 'width', type: DataType.INTEGER})
-    width: number;
-
-    @Column({field: 'height', type: DataType.INTEGER})
-    height: number;
-
     @Column({field: 'title', type: DataType.STRING, defaultValue: ''})
     title: string;
 
     @Column({field: 'description', type: DataType.STRING, defaultValue: ''})
     description: string;
 
+    @Column({field: 'file_name', type: DataType.STRING, allowNull: false})
+    fileName: string;
+
+    @HasMany(() => MapPoint)
+    points: MapPoint[];
 }

@@ -14,11 +14,15 @@ app.post('', async (req: Request, res: Response, next: NextFunction) => {
         let userRequest: CreateUserDTO = await createUserValidator.validate(req.body)
 
         let password = await bcrypt.hash(userRequest.password, saltRounds)
-
-        let userCreated = await User.create({
+        
+        let settedUser = {
             username: userRequest.username,
-            password
-        })
+            password: password,
+            id: 123
+        } as User
+        let userCreated = await User.create(
+            settedUser
+        )
         return res.send({result: userCreated})
     } catch(err: any) {
         return next(err)
@@ -36,6 +40,7 @@ app.post('/login', async (req: Request, res: Response, next: NextFunction) => {
 })
 
 app.get('/account', [auth.verifyToken], async (req: Request, res: Response) => {
+    let user = req.user
     return res.send(req.user)
 })
 

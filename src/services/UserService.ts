@@ -20,7 +20,7 @@ const login = async (request: LoginUserInputDTO): Promise<LoginUserOutputDTO> =>
     const token = jwt.sign({
         id: user.id,
         username,
-    }, config.JWT_SECRET, { expiresIn: 60*60 })
+    }, config.JWT_SECRET, { expiresIn: 60*60*1000000 })
     return { token, username };
 }
 module.exports = {

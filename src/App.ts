@@ -11,7 +11,7 @@ const cors = require('cors')
 const fileUpload = require('express-fileupload')
 const app: Express = express();
 async function start() {
-    sequelize.sync({force: true});
+    sequelize.sync({ logging: false });
 
     // let inserted = await User.create({username: 'bapt', password: '123'})
     dotenv.config();
@@ -21,23 +21,23 @@ async function start() {
     app.use(bodyParser.urlencoded({ extended: false }))
     app.use(bodyParser.json())
 
+    app.use(express.static('public'))
+    app.use('/images', express.static('maps'))
+
     app.use(session({ secret: 'conduit', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false  }));
 
-    app.use(fileUpload());
+    app.use(fileUpload({
+        limits: { fileSize: 50 * 1024 * 1024 },
+    }));
 
-    const port = 3001;
     app.get('/', (req: Request, res: Response) => {
         res.send('Express + TypeScript Server');
     });
-    console.log('app before maps')
     app.use('/api/maps', maps)
     app.use('/api/users', users)
 
-    console.log('maps', maps)
     app.use(errorHandler)
-    app.listen(port, () => {
-        console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
-    });
+
 }
 start()
-export {app}
+module.exports = app

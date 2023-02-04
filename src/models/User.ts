@@ -9,6 +9,7 @@ export class User extends Model<User> {
     @Column({field: 'password', type: DataType.STRING})
     password: string;
 
-    @Column({field: 'id', type: DataType.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true})
+    @Column({field: 'id', type: DataType.INTEGER, allowNull: true, primaryKey: true, autoIncrement: true})
     id: number;
+
 }

@@ -2,12 +2,12 @@
   "name": "guess-my-words-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/src/Index.js",
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/App.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/App.js\"",
-    "test": "jest dist/tests/**/*.spec.ts",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/Index.js\"",
+    "test": "jest --watch dist/tests/**/*.spec.ts",
     "test:watch": "jest --watch"
   },
   "author": "",
