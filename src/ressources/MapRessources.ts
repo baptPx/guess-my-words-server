@@ -160,9 +160,9 @@ app.delete('/:mapId/points/:pointId', [auth.verifyToken], async (req: Request, r
         next(err)
     }
 })
-app.get('', async (req: Request, res: Response) => {
-    console.log('reach GET')
-    return res.send({ok: true})
+app.get('/plays', async (req: Request, res: Response) => {
+    let maps = await MapToGuess.findAll()
+    return res.send(maps)
 })
 
 
@@ -181,9 +181,7 @@ app.get('/:mapId/play', [auth.verifyToken], async (req: Request, res: Response, 
         if(!map) {
             return res.status(400).send({error: 'The map with id ' + mapId + ' doesn\'t exist'})
         }
-        console.log('find ?', points)
         const pointsId = points.map(point => {
-            console.log('point', point)
             return point.dataValues.id
         })
         console.log('pointsId', pointsId)
@@ -223,7 +221,6 @@ app.post('/:mapId/play/:pointId', [auth.verifyToken], async (req: Request, res: 
                 where: { id: pointId }
             })
         ])
-        console.log('point find?', point, request)
         if(!point) {
             return res.status(400).send({error: 'point not find'})
         }
