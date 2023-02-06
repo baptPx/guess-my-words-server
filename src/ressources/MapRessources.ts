@@ -1,7 +1,7 @@
 import {NextFunction, Request, Response} from 'express'
 import { Op } from 'sequelize'
 import { addPoint, AddPointRequestDTO } from '../dto/AddPoint'
-import { createMap, CreateMapDTO } from '../dto/CreateMap'
+import { createMap, CreateMapDTO, CreateMapOutputDTO } from '../dto/CreateMap'
 import { addAnswer } from '../dto/PlayPoint'
 import { MapAnswer } from '../models/MapAnswer'
 import { MapPoint } from '../models/MapPoint'
@@ -10,27 +10,16 @@ const express = require('express')
 const app = express()
 const crypto = require('crypto')
 const config = require('../config')
+const mapService = require('../services/MapService')
 const auth = require('../middlewares/auth')
 
 app.post('/', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     try {
         const file = req.files['map']
-        if(!file) {
-            return res.status(400).send({ message: "The file 'map' is missing"})
-        }
-        let request: CreateMapDTO = await createMap.validate(req.body)
-        if(!config.MIMETYPE_MAP_ALLOWED.includes(file.mimetype)) {
-            return res.status(415).send({ message: 'Mime type not allowed'})
-        }
-        const randomUUID = crypto.randomUUID()
-        file.mv('maps/' + randomUUID + '.png')
-        const createdMap = await MapToGuess.create({
-            title: request.title,
-            description: request.description,
-            fileName: randomUUID,
-            userId: req.user ? req.user.id : -1
-        } as MapToGuess)
-        return res.status(201).send(createdMap)
+        const request: CreateMapDTO = await createMap.validate(req.body)
+        const {user} = req
+        const resultCreate: CreateMapOutputDTO = await mapService.uploadMap(file, request, user)
+        return res.status(201).send(resultCreate)
     } catch(err) {
         next(err)
     }
@@ -50,15 +39,13 @@ app.get('/', async (req: Request, res: Response, next: NextFunction) => {
 })
 app.get('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     const {mapId} = req.params
-
-    let map = await MapToGuess.findOne({
-        where: { id: mapId },
-        include: [MapPoint]
-    })
-    if (map?.dataValues.userId !== req.user?.id) {
-        return res.status(400).send({error: 'This map doesn\'t belong to the logged user' })
+    try {
+        const {user} = req
+        const result = mapService.getMapForUser(mapId, user)
+        return res.send(result)
+    } catch(err) {
+        next(err)
     }
-    res.send(map)
 })
 
 app.post('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
@@ -184,7 +171,6 @@ app.get('/:mapId/play', [auth.verifyToken], async (req: Request, res: Response, 
         const pointsId = points.map(point => {
             return point.dataValues.id
         })
-        console.log('pointsId', pointsId)
         const nbPoints = pointsId.length
         const answers = await MapAnswer.findAll({
             where: { 
@@ -213,7 +199,6 @@ app.get('/:mapId/play', [auth.verifyToken], async (req: Request, res: Response, 
 })
 app.post('/:mapId/play/:pointId', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let mapId: number = +req.params.mapId
         let pointId: number = +req.params.pointId
         const [request, point] = await Promise.all([
             addAnswer.validate(req.body),

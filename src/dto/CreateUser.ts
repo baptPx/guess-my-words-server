@@ -6,4 +6,10 @@ const createUserValidator = yup.object({
 })
 interface CreateUserDTO extends yup.InferType<typeof createUserValidator> {}
 
-export {createUserValidator, CreateUserDTO}
+interface CreateUserOutputDTO {
+    token: string;
+    username: string;
+    id: number;
+}
+
+export {createUserValidator, CreateUserDTO, CreateUserOutputDTO}

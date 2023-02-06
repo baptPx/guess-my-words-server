@@ -9,6 +9,7 @@ interface LoginUserInputDTO extends yup.InferType<typeof loginUserValidator> {}
 interface LoginUserOutputDTO {
     token: string;
     username: string;
+    id: number;
 }
 
 export { loginUserValidator, LoginUserInputDTO, LoginUserOutputDTO }
