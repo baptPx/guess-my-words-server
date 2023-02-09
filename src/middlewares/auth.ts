@@ -16,8 +16,8 @@ async function verifyToken(req: Request, res: Response, next: NextFunction) {
              * The token contains user's id ( it can contain more informations )
              * and this is saved in req.user object
              */
-            let r2 =  jwt.verify(req.headers.authorization.split(' ')[1], config.JWT_SECRET)
-            req.user = r2
+            let user =  jwt.verify(req.headers.authorization.split(' ')[1], config.JWT_SECRET)
+            res.locals.user = user
         } catch(err) {
             /*
              * If the authorization header is corrupted, it throws exception

@@ -5,6 +5,7 @@
   "main": "dist/src/Index.js",
   "scripts": {
     "build": "npx tsc",
+    "start:dev": "npx nodemon",
     "start": "node dist/App.js",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/Index.js\"",
     "test": "jest --watch dist/tests/**/*.spec.ts",
@@ -13,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/express-fileupload": "^1.4.1",
     "@types/yup": "^0.32.0",
     "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
@@ -23,7 +25,9 @@
     "express-jwt": "^8.4.0",
     "express-session": "^1.17.3",
     "jsonwebtoken": "^9.0.0",
+    "pg": "^8.9.0",
     "prisma": "^4.9.0",
+    "reflect-metadata": "^0.1.13",
     "sequelize": "^6.28.0",
     "sequelize-typescript": "^2.1.5",
     "yup": "^0.32.11"

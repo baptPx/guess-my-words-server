@@ -15,12 +15,13 @@ const login = async (request: LoginUserInputDTO): Promise<LoginUserOutputDTO> =>
     if(!user) {
         throw({ message: 'User not find or wrong password' })
     }
+    const { id } = user
     let isVerified = await bcrypt.compare(password, user.password)
     if(!isVerified) {
         throw({ message: 'User not find or wrong password' })
     }
     const token = jwt.sign({
-        id: user.id,
+        id: id,
         username,
     }, config.JWT_SECRET, { expiresIn: 60*60*1000000 })
     return { token, username, id };

@@ -1,7 +1,7 @@
 import {NextFunction, Request, Response} from 'express'
 import { Op } from 'sequelize'
-import { addPoint, AddPointRequestDTO } from '../dto/AddPoint'
-import { createMap, CreateMapDTO, CreateMapOutputDTO } from '../dto/CreateMap'
+import { addPoint } from '../dto/AddPoint'
+import { createMap, CreateMapInputDTO, CreateMapOutputDTO } from '../dto/CreateMap'
 import { addAnswer } from '../dto/PlayPoint'
 import { MapAnswer } from '../models/MapAnswer'
 import { MapPoint } from '../models/MapPoint'
@@ -15,9 +15,12 @@ const auth = require('../middlewares/auth')
 
 app.post('/', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     try {
+        if(!req.files) {
+            throw('not files')
+        }
         const file = req.files['map']
-        const request: CreateMapDTO = await createMap.validate(req.body)
-        const {user} = req
+        const request: CreateMapInputDTO = await createMap.validate(req.body)
+        const {user} = res.locals
         const resultCreate: CreateMapOutputDTO = await mapService.uploadMap(file, request, user)
         return res.status(201).send(resultCreate)
     } catch(err) {
@@ -27,7 +30,7 @@ app.post('/', [auth.verifyToken], async (req: Request, res: Response, next: Next
 app.get('/edits', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
 
     let map = await MapToGuess.findAll({
-        where: { userId: req.user?.id }
+        where: { userId: res.locals.user?.id }
     })
     return res.send(map)
 })
@@ -40,7 +43,7 @@ app.get('/', async (req: Request, res: Response, next: NextFunction) => {
 app.get('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     const {mapId} = req.params
     try {
-        const {user} = req
+        const {user} = res.locals
         const result = mapService.getMapForUser(mapId, user)
         return res.send(result)
     } catch(err) {
@@ -56,7 +59,7 @@ app.post('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response,
             MapToGuess.findOne({
                 where: {
                     id: mapId,
-                    userId: req.user ? req.user.id : 0 
+                    userId: res.locals.user.id
                 }
             })
         ])
@@ -96,7 +99,7 @@ app.patch('/:mapId/points/:pointId', [auth.verifyToken], async (req: Request, re
         const map = MapToGuess.findOne({
             where: { 
                 id: mayBePoint?.mapId,
-                userId: req.user?.id
+                userId: res.locals?.id
             }
         })
         if(!mayBePoint || !map) {
@@ -131,7 +134,7 @@ app.delete('/:mapId/points/:pointId', [auth.verifyToken], async (req: Request, r
         const map = MapToGuess.findOne({
             where: { 
                 id: mayBePoint?.mapId,
-                userId: req.user?.id
+                userId: res.locals?.id
             }
         })
         if(!mayBePoint || !map) {
@@ -175,7 +178,7 @@ app.get('/:mapId/play', [auth.verifyToken], async (req: Request, res: Response, 
         const answers = await MapAnswer.findAll({
             where: { 
                 mapPointId: { [Op.or]: pointsId },
-                userId: req.user?.id
+                userId: res.locals?.id
             },
             include: [MapPoint]
         })
@@ -218,7 +221,7 @@ app.post('/:mapId/play/:pointId', [auth.verifyToken], async (req: Request, res: 
                 correct: false
             })
         } else {
-            const userId = req.user?.id
+            const userId = res.locals?.id
             const answerExist = await MapAnswer.findOne({
                 where: { userId, mapPointId: pointId}
             })

@@ -29,7 +29,7 @@ app.post('/login', async (req: Request, res: Response, next: NextFunction) => {
 })
 
 app.get('/account', [auth.verifyToken], async (req: Request, res: Response) => {
-    const { user } = req
+    const { user } = res.locals
     return res.send(user)
 })
 
