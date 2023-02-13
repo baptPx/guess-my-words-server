@@ -1,5 +1,5 @@
-import { CreateUserDTO, CreateUserOutputDTO } from "../dto/CreateUser";
-import {LoginUserInputDTO, LoginUserOutputDTO} from "../dto/LoginUser";
+import { CreateUserDTO, CreateUserOutputDTO, createUserValidator } from "../dto/CreateUser";
+import {LoginUserInputDTO, LoginUserOutputDTO, loginUserValidator} from "../dto/LoginUser";
 import {User} from "../models/User";
 
 const jwt = require('jsonwebtoken');
@@ -7,11 +7,14 @@ const config = require('../config');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
-const login = async (request: LoginUserInputDTO): Promise<LoginUserOutputDTO> => {
+
+const login = async (body: any): Promise<LoginUserOutputDTO> => {
+    const loginRequest: LoginUserInputDTO = await loginUserValidator.validate(body)
+
     const user = await User.findOne({
-        where: { username: request.username }
+        where: { username: loginRequest.username }
     })
-    const { username, password } = request
+    const { username, password } = loginRequest
     if(!user) {
         throw({ message: 'User not find or wrong password' })
     }
@@ -27,11 +30,14 @@ const login = async (request: LoginUserInputDTO): Promise<LoginUserOutputDTO> =>
     return { token, username, id };
 }
 
-const create = async (request: CreateUserDTO): Promise<CreateUserOutputDTO> => {
-    let password = await bcrypt.hash(request.password, saltRounds)
-        
+const create = async (body: any): Promise<CreateUserOutputDTO> => {
+    
+    const userRequest: CreateUserDTO = await createUserValidator.validate(body)
+    
+    let password = await bcrypt.hash(userRequest.password, saltRounds)
+
     let settedUser = {
-        username: request.username,
+        username: userRequest.username,
         password: password
     } as User
     let userCreated = await User.create(

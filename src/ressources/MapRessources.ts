@@ -1,33 +1,31 @@
 import {NextFunction, Request, Response} from 'express'
-import { Op } from 'sequelize'
-import { addPoint } from '../dto/AddPoint'
-import { createMap, CreateMapInputDTO, CreateMapOutputDTO } from '../dto/CreateMap'
-import { addAnswer } from '../dto/PlayPoint'
-import { MapAnswer } from '../models/MapAnswer'
-import { MapPoint } from '../models/MapPoint'
+import { CreateMapOutputDTO } from '../dto/CreateMap'
 import { MapToGuess } from '../models/MapToGuess'
 const express = require('express')
 const app = express()
-const crypto = require('crypto')
-const config = require('../config')
 const mapService = require('../services/MapService')
 const auth = require('../middlewares/auth')
+const logger = require('../utils/logger')
 
 app.post('/', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('POST /maps map creation')    
     try {
         if(!req.files) {
             throw('not files')
         }
         const file = req.files['map']
-        const request: CreateMapInputDTO = await createMap.validate(req.body)
+        if(!file) {
+            throw({ error: "The file 'map' is missing"})
+        }
         const {user} = res.locals
-        const resultCreate: CreateMapOutputDTO = await mapService.uploadMap(file, request, user)
+        const resultCreate: CreateMapOutputDTO = await mapService.uploadMap(file, req.body, user)
         return res.status(201).send(resultCreate)
     } catch(err) {
         next(err)
     }
 })
 app.get('/edits', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    logger.info('GET /maps get maps of user for edition')    
 
     let map = await MapToGuess.findAll({
         where: { userId: res.locals.user?.id }
@@ -36,15 +34,16 @@ app.get('/edits', [auth.verifyToken], async (req: Request, res: Response, next: 
 })
 
 app.get('/', async (req: Request, res: Response, next: NextFunction) => {
-
+    logger.info('GET /maps get all existing maps')
     let map = await MapToGuess.findAll()
     return res.send(map)
 })
 app.get('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
     const {mapId} = req.params
+    logger.info(`GET /maps/${mapId}/edit get points of a map for edition`)
     try {
         const {user} = res.locals
-        const result = mapService.getMapForUser(mapId, user)
+        const result = await mapService.getMapForUser(mapId, user)
         return res.send(result)
     } catch(err) {
         next(err)
@@ -52,31 +51,12 @@ app.get('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, 
 })
 
 app.post('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        let mapId: number = +req.params.mapId
-        const [request, mayBeMap] = await Promise.all([
-            addPoint.validate(req.body),
-            MapToGuess.findOne({
-                where: {
-                    id: mapId,
-                    userId: res.locals.user.id
-                }
-            })
-        ])
-        if(!mayBeMap) {
-            return res.status(400).send({ message: "Map not find or doesn't belong to user" })
-        }
-        const { x, y, width, label, possibleAnswers } = request
-        let point = await MapPoint.create({
-            mapId,
-            x,
-            y,
-            width,
-            label,
-            possibleAnswers
-        } as  MapPoint)
-        return res.send(point)
     
+    let mapId: number = +req.params.mapId
+    logger.info(`POST /maps/${mapId}/edit add a point on a map`)
+    try {
+        const point = await mapService.addPointToMap(req.body, mapId, res.locals.user)
+        return res.send(point)
     } catch(err) {
         next(err)
     }
@@ -85,154 +65,51 @@ app.post('/:mapId/edit', [auth.verifyToken], async (req: Request, res: Response,
 
 
 app.patch('/:mapId/points/:pointId', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    const {mapId, pointId} = req.params
+    logger.info(`PATCH /maps/${mapId}/points/${pointId} edit a point on a map`)
     try {
-        const {mapId, pointId} = req.params
-        const [request, mayBePoint] = await Promise.all([
-            addPoint.validate(req.body),
-            MapPoint.findOne({
-                where: {
-                    id: pointId,
-                    mapId 
-                }
-            })
-        ])
-        const map = MapToGuess.findOne({
-            where: { 
-                id: mayBePoint?.mapId,
-                userId: res.locals?.id
-            }
-        })
-        if(!mayBePoint || !map) {
-            return res.status(400).send({ message: "Point not find or doesn't belong to user" })
-        }
-        const { x, y, width } = request
-        let point = await mayBePoint.update({
-            x,
-            y,
-            width
-        } as MapPoint)
+        const point = await mapService.editPoint(req.body, pointId, res.locals.user)
         return res.send(point)
-    
     } catch(err) {
         next(err)
     }
 })
 
 app.delete('/:mapId/points/:pointId', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    const {mapId, pointId} = req.params
+    logger.info(`DELETE /maps/${mapId}/points/${pointId} delete a point on a map`)
     try {
-        const {mapId, pointId} = req.params
-        const [request, mayBePoint] = await Promise.all([
-            addPoint.validate(req.body),
-            MapPoint.findOne({
-                where: {
-                    id: pointId,
-                    mapId 
-                }
-            })
-        ])
-
-        const map = MapToGuess.findOne({
-            where: { 
-                id: mayBePoint?.mapId,
-                userId: res.locals?.id
-            }
-        })
-        if(!mayBePoint || !map) {
-            return res.status(400).send({ message: "Point not find or doesn't belong to user" })
-        }
-        const { x, y, width } = request
-        let point = await MapPoint.destroy({
-            where: { id: pointId}
-        })
+        await mapService.deletePoint(pointId, res.locals.user)
         return res.status(202).send('ok')
-    
     } catch(err) {
         next(err)
     }
 })
 app.get('/plays', async (req: Request, res: Response) => {
+    logger.info(`GET /maps/plays get all maps playable`)
     let maps = await MapToGuess.findAll()
     return res.send(maps)
 })
 
 
-app.get('/:mapId/play', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+app.get('/:mapId/plays', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    let mapId: number = +req.params.mapId
+    logger.info(`GET /maps/${mapId}/plays get points positions and answer for a map`)
     try {
-        let mapId: number = +req.params.mapId
-        let [points, map] = await Promise.all([
-            await MapPoint.findAll({
-                attributes: ['x', 'y', 'width', 'id'],
-                where: { mapId }
-            }),
-            MapToGuess.findOne({
-                where: { id: mapId }
-            })
-        ])
-        if(!map) {
-            return res.status(400).send({error: 'The map with id ' + mapId + ' doesn\'t exist'})
-        }
-        const pointsId = points.map(point => {
-            return point.dataValues.id
-        })
-        const nbPoints = pointsId.length
-        const answers = await MapAnswer.findAll({
-            where: { 
-                mapPointId: { [Op.or]: pointsId },
-                userId: res.locals?.id
-            },
-            include: [MapPoint]
-        })
-        let result = points.map(point => {
-            const pointAnsweredIndex = answers.findIndex(p => p.mapPointId === point.id)
-            if(pointAnsweredIndex !== -1) return {...answers[pointAnsweredIndex].mapPoint.dataValues, find: true}
-            else return {...point.dataValues, find: false}
-        })
-        const {title, description, fileName} = map?.dataValues
-        return res.send({
-            title,
-            description,
-            fileName, 
-            nbPoints,
-            points: result
-        })
-    
+        const result = await mapService.getPlayDataForMap(mapId, res.locals.user)
+        return res.send(result)
+        
     } catch(err) {
         next(err)
     }
 })
-app.post('/:mapId/play/:pointId', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+app.post('/:mapId/plays/:pointId', [auth.verifyToken], async (req: Request, res: Response, next: NextFunction) => {
+    let pointId: number = +req.params.pointId
+    let mapId: number = +req.params.mapId
+    logger.info(`POST /maps/${mapId}/plays/${pointId} try an answer for a point`)
     try {
-        let pointId: number = +req.params.pointId
-        const [request, point] = await Promise.all([
-            addAnswer.validate(req.body),
-            MapPoint.findOne({
-                where: { id: pointId }
-            })
-        ])
-        if(!point) {
-            return res.status(400).send({error: 'point not find'})
-        }
-        const {answer} = request
-        
-        const isAnswerOK = answer.match(point?.possibleAnswers) 
-
-        if(!isAnswerOK) {
-            return res.send({
-                correct: false
-            })
-        } else {
-            const userId = res.locals?.id
-            const answerExist = await MapAnswer.findOne({
-                where: { userId, mapPointId: pointId}
-            })
-            if(!answerExist) {
-                MapAnswer.create({
-                    mapPointId: pointId,
-                    userId
-                } as MapAnswer)
-            }
-            return res.send({ correct: true, label: point.label })
-        }
+            const result = await mapService.tryAnswerOnMap(req.body, mapId, pointId, res.locals.user)
+            return res.send(result)
     
     } catch(err) {
         next(err)

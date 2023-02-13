@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
+import logger from './utils/logger';
 const sequelize = require('./database')
 const bodyParser = require('body-parser')
 const session = require('express-session')
@@ -30,6 +31,7 @@ async function start() {
     }));
 
     app.get('/', (req: Request, res: Response) => {
+        logger.info('test')
         res.send('Express + TypeScript Server');
     });
     app.use('/api/maps', maps)
