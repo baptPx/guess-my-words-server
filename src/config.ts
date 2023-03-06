@@ -9,7 +9,8 @@ const {
     DATABASE_PASSWORD, 
     DATABASE_URL,
     DATABASE_PORT,
-    JWT_SECRET
+    JWT_SECRET,
+    FORCE_SYNC,
 } = mesvars
 
 module.exports = {
@@ -20,5 +21,6 @@ module.exports = {
     DATABASE_URL,
     DATABASE_USERNAME,
     DATABASE_PASSWORD,
+    FORCE_SYNC,
     MIMETYPE_MAP_ALLOWED: ['image/jpeg', 'image/png']
 }

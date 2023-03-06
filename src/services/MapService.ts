@@ -6,11 +6,12 @@ import { MapAnswer } from "../models/MapAnswer";
 import { MapPoint } from "../models/MapPoint";
 import { MapToGuess } from "../models/MapToGuess";
 import { User } from "../models/User"
+const crypto = require('crypto')
 const config = require('../config');
 
 const uploadMap = async (body: any, file: any, user: User): Promise<CreateMapOutputDTO> => {
     const request: CreateMapInputDTO = await createMap.validate(body)
-
+    
     if(!file) {
         throw({ error: "The file 'map' is missing"})
     }
@@ -19,6 +20,7 @@ const uploadMap = async (body: any, file: any, user: User): Promise<CreateMapOut
     }
     const fileName = crypto.randomUUID() + '.png'
     file.mv('maps/' + fileName)
+
     const createdMap = await MapToGuess.create({
         title: request.title,
         description: request.description,
@@ -141,7 +143,7 @@ const getPlayDataForMap = async(mapId: number, user: User) => {
     return {title, description, fileName, nbPoints, points: result}
 }
 
-const tryAnswerOnMap = async(body: any, pointId: number, mapId: number, user: User) => {
+const tryAnswerOnMap = async(body: any, pointId: number, user: User) => {
     const [request, point] = await Promise.all([
         addAnswer.validate(body),
         MapPoint.findOne({
@@ -157,8 +159,8 @@ const tryAnswerOnMap = async(body: any, pointId: number, mapId: number, user: Us
 
     if(!isAnswerOK) {
         return { correct: false }
-    } else {
-        const userId = res.locals?.id
+    } else if(user !== undefined) {
+        const userId = user.id
         const answerExist = await MapAnswer.findOne({
             where: { userId, mapPointId: pointId}
         })
@@ -168,8 +170,8 @@ const tryAnswerOnMap = async(body: any, pointId: number, mapId: number, user: Us
                 userId
             } as MapAnswer)
         }
-        return { correct: true, label: point.label }
     }
+    return { correct: true, label: point.label }
 }
 module.exports = {
     getMapForUser,

@@ -8,7 +8,7 @@
     "start:dev": "npx nodemon",
     "start": "node dist/App.js",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/Index.js\"",
-    "test": "jest --watch dist/tests/**/*.spec.ts",
+    "test": "jest --watch dist/tests/**/*.spec.ts --NODE_ENV=test --runInBand" ,
     "test:watch": "jest --watch"
   },
   "author": "",
